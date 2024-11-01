@@ -7,37 +7,38 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.styles.borders import Border, Side
 from openpyxl.utils import get_column_letter
+from tempfile import NamedTemporaryFile
+import smtplib
+from email.mime.text import MIMEText
+from email.utils import make_msgid
+from email.utils import formataddr
 
-from app.tools.tools import fast_bitrix_slow as fast_bitrix
+from tools.tools import fast_bitrix_slow as fast_bitrix
 
-USER_LIST = [
-    '3044',
-    '3035',
-    '3031',
-    '3045',
-    '3027',
-    '2964',
-    '3504',
-    '3685',
-    '3195',
-    '2861',
-    '2996',
-    '3030',
-    '3040',
-    '2710',
-    '3041',
-    '2711',
-    '3032',
-    '3621',
-    '3043',
-    '3036',
-    '3039',
-    '3023'
-]
-
-USER_LIST = [
-    '296'
-]
+USER_LIST = {
+    '3044': 'ChuprinAVI@GSPROM.RU',
+    '3035': 'ShkaretnykhAA@GSPROM.RU',
+    '3031': 'LaubganDA@GSPROM.RU',
+    '3045': 'SavichevKE@GSPROM.RU',
+    '3027': 'SudnikovEV@GSPROM.RU',
+    '2964': 'VirokhobskiiAA@GSPROM.RU',
+    '3504': 'BalabaAD@GSPROM.RU',
+    '3685': 'KozlovVV@GSPROM.RU',
+    '3195': 'KerroSSE@GSPROM.RU',
+    '2861': 'BelovaAOl@GSPROM.RU',
+    '2996': 'KolodiazhnyiGIu@GSPROM.RU',
+    '3030': 'ZakharovRA@GSPROM.RU',
+    '3040': 'ZhukovaVI@GSPROM.RU',
+    '2710': 'VolkovAV@GSPROM.RU',
+    '3041': 'VasilchikovIS@GSPROM.RU',
+    '2711': 'KhoviakovaOA@GSPROM.RU',
+    '3032': 'MukhametshinaAA@GSPROM.RU',
+    '3621': 'EremeevaPIU@GSPROM.RU',
+    '3043': 'GurakIuV@GSPROM.RU',
+    '3036': 'RomanenkoEN@GSPROM.RU',
+    '3039': 'DzetovetskiiIV@GSPROM.RU',
+    '3023': 'GribachevSPE@GSPROM.RU'
+}
 
 
 def get_element_value(field_name: str, fields_info: dict, element_info: dict) -> str:
@@ -112,7 +113,7 @@ def get_report_months(year_display_values, month_display_values):
     result = list()
     current_year = datetime.now().year
     current_month = datetime.now().month
-    for i in range(2):
+    for i in range(1):
         current_month -= 1
         if current_month == 0:
             current_month = 12
@@ -263,7 +264,7 @@ def excel_list_28():
         })
         month_field_id = fields_info['Месяц']['FIELD_ID']
         month_name = list(filter(lambda x: x[0] == date_tuple[0], fields_info['Месяц']['DISPLAY_VALUES_FORM'].items()))[0][1]
-        year_name = list(filter(lambda x: x[0] == date_tuple[1], fields_info['Месяц']['DISPLAY_VALUES_FORM'].items()))[0][1]
+        year_name = list(filter(lambda x: x[0] == date_tuple[1], fields_info['Год']['DISPLAY_VALUES_FORM'].items()))[0][1]
         if not month_elements:
             continue
         for elem_index, elem in enumerate(sorted(filter(lambda x: fields_info['Ответственный']['FIELD_ID'] in x, month_elements), key=lambda x: x['NAME'])):
@@ -326,7 +327,7 @@ def excel_list_28():
         fields_info[fields_raw[key]['NAME']] = fields_raw[key]
 
     report_data = [list(fields_info.keys())[:-2] + [list(fields_info.keys())[-1]]]
-    year_code = list(filter(lambda x: x[1] == (datetime.now().year), fields_info['Год']['DISPLAY_VALUES_FORM'].items()))[0][0]
+    year_code = list(filter(lambda x: x[1] == str(datetime.now().year), fields_info['Год']['DISPLAY_VALUES_FORM'].items()))[0][0]
     elements = fast_bitrix.get_all('lists.element.get', {
         'IBLOCK_TYPE_ID': 'lists',
         'IBLOCK_ID': '29',
@@ -393,24 +394,40 @@ def excel_list_28():
 
 
     report_name = f'УС_РАС_{datetime.now().strftime("%d_%m_%Y_%H_%M_%S")}.xlsx'
-    book.save(report_name)
+    with NamedTemporaryFile() as temp:
+        book.save(temp.name)
+        temp.seek(0)
+        report_file = temp.read()
+    report_file_base64 = str(base64.b64encode(report_file))[2:]
 
     # Загрузка отчета в Битрикс
-    for user in USER_LIST:
-        bitrix_folder_id = get_user_folder_id(fast_bitrix, user)
-        with open(report_name, 'rb') as file:
-            report_file = file.read()
-        report_file_base64 = str(base64.b64encode(report_file))[2:]
+    for user_id, user_email in USER_LIST.items():
+        bitrix_folder_id = get_user_folder_id(fast_bitrix, user_id)
         upload_report = fast_bitrix.call('disk.folder.uploadfile', {
             'id': bitrix_folder_id,
             'data': {'NAME': report_name},
             'fileContent': report_file_base64
         })
 
+        message_text = f'Отчет по УС:РАС сформирован.\nСсылка на отчет в Битрикс24: {upload_report["DETAIL_URL"]}'
+
         fast_bitrix.call('im.notify.system.add', {
-            'USER_ID': user,
+            'USER_ID': user_id,
             'MESSAGE': f'Отчет по УС:РАС сформирован. {upload_report["DETAIL_URL"]}'}, raw=True)
-        os.remove(report_name)
+
+        message = MIMEText(message_text)
+        message['From'] = formataddr(('Робот Б24', 'robot_bitrix24@GSPROM.RU'))
+        message['Subject'] = f'Отчет "Ремонт автотранспортных средств" {datetime.now().strftime("%d.%m.%Y")}'
+        message['Message-ID'] = make_msgid()
+        server = smtplib.SMTP('email.gsprom.ru:587')
+        server.ehlo()
+        server.starttls()
+        server.ehlo
+        server.login('robot_bitrix24@GSPROM.RU', 'Wv6zh8yw')
+        message['To'] = user_email
+        server.sendmail(message['From'], message['To'], message.as_string())
+        server.quit()
+
 
 if __name__ == '__main__':
     excel_list_28()

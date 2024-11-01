@@ -1,11 +1,12 @@
 from datetime import datetime
 import base64
 import os
+import re
 
 from fastapi import Request
 import openpyxl
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 
 from custom_webhooks.ExcelList_28 import get_element_value, get_user_folder_id
 
@@ -57,6 +58,23 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
             'ufCrm5_1714650169',
             'ufCrm5_1712049593',
             'ufCrm5_1712049741',
+            'ufCrm5_1716538019',
+            'ufCrm5_1716538032',
+            'ufCrm5_1716796215',
+            'ufCrm5_1716537997',
+            'ufCrm5_1721914677327',
+            'ufCrm5_1721915566264',
+            'ufCrm5_1721915580214',
+            'ufCrm5_1721915591798',
+            'ufCrm5_1721913228187',
+            'ufCrm5_1721913267676',
+            'ufCrm5_1721913304208',
+            'ufCrm5_1721913336344',
+            'ufCrm5_1721914677327',
+            'ufCrm5_1721914704672',
+            'ufCrm5_1721914738682',
+            'ufCrm5_1721915610894',
+            'ufCrm5_1721915760913',
         ]
     })
 
@@ -78,6 +96,32 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
 
     sheet.append(
         [
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            'Текущее состояние',
+            '',
+            '',
+            '',
+            '',
+            '',
+            'РЕЗУЛЬТАТ ПРЕДЫДУЩЕГО МЕСЯЦА, ПО КОТОРОМУ ФОРМИРУЕТСЯ СПРАВКА',
+            '',
+            '',
+            '',
+            '',
+            'НАКАПЛИВАЕМЫЕ ИСТОРИЧЕСКИЕ ДАННЫЕ',
+            '',
+            '',
+            '',
+            '',
+        ]
+    )
+    sheet.append(
+        [
             'Номер',
             'Наименование показателя',
             "Стадия",
@@ -85,7 +129,6 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
             'Ответственный за показатель',
             'Блок',
             'Приоритет',
-            'Соисполнитель',
             'Ответственный в УПАиК',
             'Текущее значение',
             'Результат в %',
@@ -99,10 +142,27 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
             'Результат исполнения ЯНВАРЯ',
             'Результат исполнения ФЕВРАЛЯ',
             'Результат исполнения МАРТА',
+            'Результат исполнения 1-го квартала',
+            'Светофор 1-го квартала',
+            'Результат исполнения АПРЕЛЬ',
+            'Результат исполнения МАЙ',
+            'Результат исполнения ИЮНЬ',
+            'Результат исполнения 2-го квартала',
+            'Светофор 2-го квартала',
+            'Результат исполнения ИЮЛЬ',
+            'Результат исполнения АВГУСТ',
+            'Результат исполнения СЕНТЯБРЬ',
+            'Результат исполнения 3-го квартала',
+            'Светофор 3-го квартала',
+            'Результат исполнения ОКТЯБРЬ',
+            'Результат исполнения НОЯБРЬ',
+            'Результат исполнения ДЕКАБРЬ',
+            'Результат исполнения 4-го квартала',
+            'Светофор 4-го квартала'
         ]
     )
 
-    for row in items:
+    for row in sorted(items, key=lambda item: float(re.search(r'(\d+[.]?\d+)|(\d+)', item['title']).group())):
         sheet.append(
             [
                 row['title'],
@@ -112,7 +172,6 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
                 await get_user_name(row['ufCrm5_1712049480'], fast_bitrix),
                 get_enumeration_field_value(row['ufCrm5_1712049395'], fields_info['ufCrm5_1712049395']),
                 get_enumeration_field_value(row['ufCrm5_1712049436'], fields_info['ufCrm5_1712049436']),
-                await get_user_name(row['ufCrm5_1712648792'], fast_bitrix),
                 await get_user_name(row['ufCrm5_1712301306'], fast_bitrix),
                 row['ufCrm5_1712049544'],
                 row['ufCrm5_1712049569'],
@@ -126,14 +185,24 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
                 row['ufCrm5_1712049833'],
                 row['ufCrm5_1712049853'],
                 row['ufCrm5_1712049891'],
+                row['ufCrm5_1721913228187'],
+                row['ufCrm5_1721913267676'],
                 row['ufCrm5_1714650169'],
+                row['ufCrm5_1716538019'],
+                row['ufCrm5_1716538032'],
+                row['ufCrm5_1716796215'],
+                row['ufCrm5_1716537997'],
+                row['ufCrm5_1721914677327'],
+                row['ufCrm5_1721915566264'],
+                row['ufCrm5_1721915580214'],
+                row['ufCrm5_1721915591798'],
             ]
         )
 
     cell_indicator_colors = {
-        'Зеленый': '00b04f',
-        'Желтый': 'ffbf00',
-        'Красный': 'ff0000'
+        'зеленый': '00b04f',
+        'желтый': 'ffbf00',
+        'красный': 'ff0000'
     }
 
     row_cell_width = {
@@ -145,15 +214,15 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
         5: 25,
         6: 12,
         7: 35,
-        8: 35,
-        9: 40,
-        10: 15,
-        11: 12,
+        8: 40,
+        9: 15,
+        10: 12,
+        11: 50,
         12: 50,
         13: 50,
         14: 50,
-        15: 50,
-        16: 5,
+        15: 5,
+        16: 50,
         17: 50,
         18: 50,
         19: 50,
@@ -167,35 +236,54 @@ async def excel_smart_185(fast_bitrix, params: Request.query_params):
         27: 50,
         28: 50,
         29: 50,
+        30: 50,
+        31: 50,
+        32: 50,
     }
 
     # Изменение ширины ячеек
     for index, row in enumerate(sheet.columns):
-        sheet.column_dimensions[get_column_letter(row[0].column)].width = row_cell_width[index]
+        if index in row_cell_width:
+            cell_width = row_cell_width[index]
+        else:
+            cell_width = 50
+        sheet.column_dimensions[get_column_letter(row[0].column)].width = cell_width
 
     # Автоперенос текста, стиль текста и выравнивание
     for row_index, row in enumerate(sheet.rows):
         for cell_index, cell in enumerate(row):
-            if row_index < 1:
+            if row_index == 1 or (row_index == 0 and cell_index in [6, 7, 8,]):
+                if row_index == 1 and cell_index in [12, 13, 17, 18, 19, 20, 21, 22, 23,]:
+                    cell.fill = PatternFill(start_color='EAD7B8', end_color='EAD7B8', fill_type='solid')
+                else:
+                    cell.fill = PatternFill(start_color='5EBDF7', end_color='5EBDF7', fill_type='solid')
                 cell.font = Font(name='Calibri', size=12, bold=True)
                 cell.alignment = Alignment(horizontal='center', vertical='center')
             else:
 
                 # Цвет ячеек
-                if cell_index == 16 and row_index > 0:
-                    cell_color = cell_indicator_colors[cell.value] if cell.value in cell_indicator_colors else 'ff0000'
+                if row_index == 0 and cell_index in [12, 13, 17]:
+                    cell.fill = PatternFill(start_color='EAD7B8', end_color='EAD7B8', fill_type='solid')
+                elif cell_index == 15 and row_index > 1:
+                    cell_color = cell_indicator_colors[cell.value.lower()] if cell.value in cell_indicator_colors else 'ff0000'
                     cell.fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type='solid')
                     cell.value = ''
 
-                if cell_index in [0, 2, 4, 5, 6, 7, 8, 10, 11]:
+                if cell_index in [0, 2, 3, 4, 5, 6, 7, 9, 10] or row_index == 0 and cell_index == 17:
                     cell.alignment = Alignment(horizontal='center', vertical='center')
                 else:
                     cell.alignment = Alignment(horizontal='left', vertical='center')
 
             cell.alignment = cell.alignment.copy(wrapText=True)
-
-
-
+            cell.font = Font(name='Arial Narrow', size=12)
+            cell.border = Border(left=Side(style='thin'),
+                                 right=Side(style='thin'),
+                                 top=Side(style='thin'),
+                                 bottom=Side(style='thin')
+                                 )
+    sheet.merge_cells('G1:I1')
+    sheet.merge_cells('M1:N1')
+    sheet.merge_cells('R1:X1')
 
     report_name = f'Показатели_функционального_блока{datetime.now().strftime("%d_%m_%Y_%H_%M_%S")}.xlsx'
     workbook.save(report_name)

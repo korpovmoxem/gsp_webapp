@@ -9,12 +9,8 @@ import requests
 class Authentication:
 
     def __init__(self):
-        try:
-            with open(f'{os.getcwd()}\\authentication.yml', 'r') as file:
-                self.credentials = yaml.load(file, SafeLoader)
-        except FileNotFoundError:
-            with open(f'{os.getcwd()}/authentication.yml', 'r') as file:
-                self.credentials = yaml.load(file, SafeLoader)
+        with open(f'{os.sep}webapp{os.sep}app{os.sep}authentication.yml', 'r') as file:
+            self.credentials = yaml.load(file, SafeLoader)
 
 
 def send_bitrix_request(method: str, data=None) -> dict | list:
